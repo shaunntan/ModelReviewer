@@ -24,15 +24,47 @@ accurate.
   tokenizer and run a single forward pass with `output_attentions=True,
   output_hidden_states=True` to capture every layer's internals in one call
   (avoid multiple forward passes for different views of the same prompt).
-- **Frontend**: server-rendered template (Jinja2) + vanilla JS using a
-  charting library (D3.js or Plotly.js) for the interactive visualizations —
-  attention heatmaps, embedding projections, logit bar charts. Keep it
-  dependency-light; don't introduce a separate JS framework/build step unless
-  the visualizations genuinely outgrow this.
+- **Frontend**: server-rendered template (Jinja2) + vanilla JS. Use D3.js for
+  the architecture panel itself (custom SVG diagram with grouping/expand and
+  click handling isn't a fit for an off-the-shelf chart library); D3.js or
+  Plotly.js is fine for the detail-panel charts (attention heatmaps,
+  embedding projections, logit bar charts). Keep it dependency-light; don't
+  introduce a separate JS framework/build step unless the visualizations
+  genuinely outgrow this.
 - **Request flow**: user submits a prompt → `POST /analyze` → backend
   tokenizes, runs the forward pass, extracts per-layer attention weights,
   hidden-state summaries, and final logits/top-k next-token probabilities →
   one JSON response → frontend renders the views from that single payload.
+
+## Frontend design
+
+- **Visual style**: clean, light, product-like — generous whitespace,
+  friendly sans-serif, a neutral (white/gray/black) base with a single
+  accent color for highlights, active states, and data-viz elements.
+- **Audience**: ML practitioners/researchers. Don't hide standard
+  terminology (attention heads, residual stream, logit lens) behind
+  explanatory copy — surface it directly, and expose real controls
+  (layer/head pickers, model selector) rather than simplifying them away.
+- **Layout**: single-page dashboard, not a step-by-step wizard. The prompt
+  input and every view (architecture panel, attention, hidden states,
+  logits) live on one page without navigating between screens.
+- **Centerpiece — horizontal model panel**: a panel spanning the full width
+  of the page draws the selected model's architecture left-to-right, input
+  to output (tokenizer/embedding → transformer blocks → output head).
+  - Repeated blocks are grouped by default (e.g. "Transformer Blocks × 12"
+    as one expandable segment) rather than drawn as separate nodes;
+    expanding a group reveals its individual layers.
+  - A model-selector dropdown lets the user switch models (e.g. `gpt2`,
+    `distilgpt2`, `bert-base`); the diagram adapts to the selected model's
+    actual architecture and layer count rather than assuming a fixed shape.
+    This means the backend must expose architecture metadata (layer count,
+    block types) alongside the analysis results, not just the numeric
+    outputs.
+  - Clicking a node (a block group, or an individual layer once expanded)
+    opens/updates a detail panel below the architecture panel with that
+    node's data — attention heatmap, hidden-state view, etc. Click-to-select
+    drives the detail panel; it renders in place rather than as a modal, to
+    keep everything within the single-dashboard layout.
 
 ## Core concepts to preserve when extending
 
