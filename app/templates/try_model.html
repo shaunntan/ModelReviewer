@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Try Model — ModelReviewer{% endblock %}
+{% block subtitle %}Run a prompt through a local model and inspect its tokenization and attention.{% endblock %}
+
+{% block extra_head %}
+  <script src="/static/vendor/d3.v7.min.js"></script>
+{% endblock %}
+
+{% block content %}
+  <div class="try-model-layout">
+    <div class="try-model-left">
+      <section class="panel">
+        <form id="analyze-form" class="analyze-form">
+          <div class="analyze-form-row">
+            <label for="model-select">Model</label>
+            <select id="model-select" required></select>
+          </div>
+          <div class="analyze-form-row">
+            <label for="prompt-input">Prompt</label>
+            <textarea id="prompt-input" rows="2" placeholder="The quick brown fox..." required></textarea>
+          </div>
+          <button type="submit" id="analyze-button">Analyze</button>
+        </form>
+        <p id="empty-state" class="hint" hidden>
+          No local models yet — go to <a href="/find-model">Find Model</a> to download one.
+        </p>
+        <p id="analyze-error" class="error" hidden></p>
+        <p id="truncated-warning" class="warning" hidden>
+          Prompt was truncated to fit the analysis limit.
+        </p>
+      </section>
+
+      <section class="panel" id="output-section" hidden>
+        <h2>Output</h2>
+        <div id="output-content" class="detail-content"></div>
+      </section>
+
+      <section class="panel" id="detail-section" hidden>
+        <h2>Detail</h2>
+        <div id="token-strip" class="token-strip"></div>
+        <div id="detail-content" class="detail-content">
+          <p class="hint">Click a block's Attn circle to inspect its attention.</p>
+        </div>
+      </section>
+    </div>
+
+    <div class="try-model-right">
+      <section class="panel" id="architecture-section" hidden>
+        <div class="architecture-header">
+          <h2>Architecture</h2>
+          <div class="architecture-controls">
+            <button type="button" id="play-button" class="play-button">▶ Play</button>
+            <button type="button" id="stop-button" class="stop-button" disabled>■ Stop</button>
+          </div>
+        </div>
+        <div class="architecture-panel-wrap">
+          <svg id="architecture-panel" class="architecture-panel"></svg>
+        </div>
+      </section>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/architecture-panel.js"></script>
+  <script src="/static/js/attention-heatmap.js"></script>
+  <script src="/static/js/output-predictions.js"></script>
+  <script src="/static/js/try_model.js"></script>
+{% endblock %}

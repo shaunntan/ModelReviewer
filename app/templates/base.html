@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ModelReviewer{% endblock %}</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header-top">
+      <h1>ModelReviewer</h1>
+      <nav class="main-nav">
+        <a href="/" class="{{ 'active' if active_page == 'try' else '' }}">Try Model</a>
+        <a href="/find-model" class="{{ 'active' if active_page == 'find' else '' }}">Find Model</a>
+      </nav>
+    </div>
+    <p class="subtitle">{% block subtitle %}{% endblock %}</p>
+  </header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

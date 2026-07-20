@@ -1,0 +1,8 @@
+models/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.DS_Store
+.claude/settings.local.json

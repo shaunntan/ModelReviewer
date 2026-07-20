@@ -9,12 +9,14 @@ language model — tokenization, embeddings, attention, per-layer hidden states,
 and final output logits — so a user can interactively inspect what the model
 is doing to their input, not just its final text output.
 
-**Status: this repository is currently empty (pre-scaffold).** There is no
-existing code, build system, or test suite yet. The sections below define the
-intended architecture and conventions for the initial implementation — treat
-them as the plan to build against, not as documentation of code that already
-exists. Update this file once real commands/structure land so it stays
-accurate.
+**Status: implemented.** The FastAPI app, model layer, and both pages (Try
+Model, Find Model) described below exist and run. The sections below still
+describe the intended architecture/conventions; where the actual
+implementation has settled on specifics (e.g. exact node kinds in the
+architecture panel), see `app/static/js/architecture-panel.js` and
+`app/services/inference.py` directly rather than treating this file as a
+line-by-line spec. See "Known placeholders" below for what's intentionally
+not implemented yet and why.
 
 ## Intended architecture
 
@@ -51,9 +53,11 @@ accurate.
 - **Centerpiece — horizontal model panel**: a panel spanning the full width
   of the page draws the selected model's architecture left-to-right, input
   to output (tokenizer/embedding → transformer blocks → output head).
-  - Repeated blocks are grouped by default (e.g. "Transformer Blocks × 12"
-    as one expandable segment) rather than drawn as separate nodes;
-    expanding a group reveals its individual layers.
+  - Repeated blocks are drawn as individual nodes under a shared "Transformer
+    Blocks × 12" label, not as a single collapsed group needing an expand
+    click — each block is itself broken into its own sub-component nodes
+    (self-attention, add & norm, feed-forward, add & norm), visually boxed
+    together so the block reads as one unit.
   - A model-selector dropdown lets the user switch models (e.g. `gpt2`,
     `distilgpt2`, `bert-base`); the diagram adapts to the selected model's
     actual architecture and layer count rather than assuming a fixed shape.
@@ -84,6 +88,50 @@ features aligned with them rather than inventing parallel data shapes:
   ("logit lens") to show what the model would predict at each layer, not just
   the last one.
 
+## Known placeholders in the architecture panel
+
+Clicking some nodes shows a "coming in a future milestone" message instead
+of real data. This is a deliberate scoping decision, not an oversight — each
+one is blocked on something specific:
+
+- **Add & Norm (post-attention)** and **Feed-Forward**: `output_hidden_states`
+  (see Model loading below) only exposes the residual stream before/after
+  each *whole* transformer block, not the intermediate state between its
+  attention and feed-forward sub-layers. Getting that would mean registering
+  forward hooks on each block's attention/MLP submodules directly — but
+  those submodule names differ per architecture (GPT2's block exposes
+  `.attn`/`.mlp`, BERT's exposes `.attention`/`.intermediate`+`.output`,
+  etc.), which would mean hardcoding per-model-family submodule paths and
+  breaking the architecture-agnostic approach the rest of the app uses (see
+  the attribute-fallback-chain pattern in `extract_architecture`,
+  `app/services/inference.py`). Nothing currently solves this generically.
+- **Final Norm**: this is exactly the "Hidden state / residual stream view"
+  concept above, which the Suggested first milestone (below) explicitly
+  defers until after tokenization + attention are solid.
+
+**LM Head is no longer a placeholder.** The app still loads models via
+generic `AutoModel` (not `AutoModelForCausalLM`/`AutoModelForMaskedLM`), so
+there's no real unembedding/LM-head weight loaded — but rather than block on
+that, `_output_predictions` in `app/services/inference.py` reconstructs
+logits by projecting the final hidden state through the *input* embedding
+matrix (`model.get_input_embeddings().weight`). This is exact for models
+that tie input/output embeddings (e.g. GPT-2) and an approximation for
+models with a separate, untied output head (e.g. BERT's MLM head has its
+own transform + bias). The `/analyze` response's `output.approximate` field
+is always `true` today as a result — the frontend surfaces that caveat
+directly (`renderOutputPredictions` in `app/static/js/output-predictions.js`)
+rather than presenting it as an exact result. This same view renders when
+Analyze completes, when the LM Head node is clicked, and when the Play
+animation reaches the end.
+
+The per-layer activation norm already computed for the Play animation's
+shading (`activations` in the `/analyze` response, computed in
+`app/services/inference.py` from `output_hidden_states`) is real data, and
+answers a coarser version of the hidden-state-view question — clicking a
+block's post-feed-forward Add & Norm node surfaces that number directly. The
+views above go beyond that single summary value (a fuller per-dimension
+view, or real logits) and are what's actually deferred.
+
 ## Model loading
 
 - Load and cache the model/tokenizer once (e.g., at app startup), not per
@@ -98,3 +146,10 @@ Get the simplest end-to-end slice working before adding more views: a single
 `/analyze` endpoint plus one template that shows tokenization and attention
 for a prompt against `gpt2`. Add hidden-state and logit-lens views once that
 path is solid.
+
+**Status: done** (tokenization, attention, and the architecture panel are
+implemented and working across arbitrary local models, not just `gpt2`).
+The final-layer output view is also done (see "Known placeholders" above —
+LM Head is no longer blocked). The hidden-state view, and extending output
+to a full per-layer logit lens rather than just the final layer, are the
+remaining next steps.

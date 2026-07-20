@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Find Model — ModelReviewer{% endblock %}
+{% block subtitle %}Search the Hugging Face Hub, download a model, and run it locally.{% endblock %}
+
+{% block content %}
+  <section class="panel">
+    <h2>Search models</h2>
+    <form id="search-form" class="search-form">
+      <input id="search-input" type="text" placeholder="e.g. gpt2, bert, distilgpt2" autocomplete="off" required>
+      <button type="submit">Search</button>
+    </form>
+    <p id="search-error" class="error" hidden></p>
+    <table id="results-table" class="results-table" hidden>
+      <thead>
+        <tr>
+          <th>Model</th>
+          <th>Author</th>
+          <th>Downloads</th>
+          <th>Likes</th>
+          <th>Task</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="results-body"></tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Local models</h2>
+    <p class="hint">Models downloaded into <code>models/</code>, each in its own folder.</p>
+    <ul id="local-models-list" class="local-models-list"></ul>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+  <script src="/static/js/find_model.js"></script>
+{% endblock %}
